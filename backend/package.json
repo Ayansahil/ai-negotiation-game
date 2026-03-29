@@ -1,0 +1,21 @@
+{
+  "name": "ai-negotiation-game-backend",
+  "version": "1.0.0",
+  "description": "Backend API for AI negotiation game",
+  "main": "server.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js",
+    "build": "echo 'No build step required for Node.js backend'",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.3.3",
+    "morgan": "^1.10.1"
+  }
+}
