@@ -25,7 +25,7 @@ export default function CharacterDisplay({ character, bubble, personality, side 
         <img
           src={character.img}
           alt={character.name}
-          className="relative w-\[180px] h-\[220px] object-contain border-4 border-black"
+          className="relative w-[180px] md:w-[240px] h-[220px] md:h-[300px] object-contain border-4 border-black"
           style={{ transform: isSeller ? 'scaleX(1)' : 'scaleX(-1)' }}
         />
       </div>

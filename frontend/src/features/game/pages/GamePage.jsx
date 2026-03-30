@@ -2,6 +2,7 @@ import StatsBar from '../components/StatsBar'
 import CharacterDisplay from '../components/CharacterDisplay'
 import InputHUD from '../components/InputHUD'
 import { useGame } from '../hooks/useGame'
+import StakeDisplay from '../components/StakeDisplay'
 import '../styles/game.css'
 
 export default function GamePage({ buyer, seller, onEnd }) {
@@ -30,7 +31,7 @@ export default function GamePage({ buyer, seller, onEnd }) {
         mood={gameState.mood}
       />
 
-      <main className="relative pt-24 pb-48 px-4 h-screen max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      <main className="relative pt-24 pb-48 px-4 h-screen max-w-7xl mx-auto flex flex-col items-center justify-center gap-8 md:grid md:grid-cols-2">
         <CharacterDisplay
           character={seller}
           bubble={gameState.sellerMessage}
@@ -42,6 +43,7 @@ export default function GamePage({ buyer, seller, onEnd }) {
           bubble={gameState.lastUserMessage}
           side="buyer"
         />
+        <StakeDisplay productLabel={gameState.productLabel} productImage={gameState.productImage} />
       </main>
 
       <InputHUD onSend={sendOffer} disabled={gameState.done} />

@@ -2,9 +2,10 @@ import { useState } from 'react'
 import CharacterCard from './CharacterCard'
 import { buyers, sellers } from '../services/characters'
 
-export default function CharacterGrid({ onStart }) {
+export default function CharacterGrid({ onStart, onGoStats, onGoCrew, onGoLogs, onGoSettings }) {
   const [selectedBuyer, setSelectedBuyer] = useState(null)
   const [selectedSeller, setSelectedSeller] = useState(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const canStart = selectedBuyer && selectedSeller
 
@@ -13,17 +14,44 @@ export default function CharacterGrid({ onStart }) {
       {/* Top navbar */}
       <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-20 bg-[#f59e0b] border-b-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
         <div className="flex items-center gap-4">
-          <span className="material-symbols-outlined text-black text-2xl">menu</span>
+          {/* Hamburger — mobile only */}
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden">
+            <span className="material-symbols-outlined text-black text-2xl">
+              {mobileMenuOpen ? 'close' : 'menu'}
+            </span>
+          </button>
           <h1 className="text-3xl font-black uppercase italic tracking-tighter text-black">NEGOTIATION PHASE</h1>
         </div>
         <div className="hidden md:flex items-center gap-8">
           <span className="font-headline font-black text-black underline decoration-4 uppercase tracking-wider cursor-pointer">DEAL</span>
-          <span className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">STATS</span>
-          <span className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">CREW</span>
-          <span className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">LOGS</span>
+          <span onClick={onGoStats} className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">STATS</span>
+          <span onClick={onGoCrew} className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">CREW</span>
+          <span onClick={onGoLogs} className="font-headline font-black text-black/70 uppercase tracking-wider cursor-pointer">LOGS</span>
         </div>
-        <span className="material-symbols-outlined text-black text-2xl cursor-pointer">settings</span>
+        <button onClick={onGoSettings} className="material-symbols-outlined text-black text-2xl cursor-pointer bg-transparent border-none">settings</button>
       </header>
+
+      {/* Mobile dropdown menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed top-20 left-0 w-full bg-[#f59e0b] border-b-4 border-black z-50 flex flex-col">
+          <button onClick={() => { onGoStats?.(); setMobileMenuOpen(false) }}
+            className="font-headline font-black text-black uppercase px-6 py-4 border-b-2 border-black text-left">
+            STATS
+          </button>
+          <button onClick={() => { onGoCrew?.(); setMobileMenuOpen(false) }}
+            className="font-headline font-black text-black uppercase px-6 py-4 border-b-2 border-black text-left">
+            CREW
+          </button>
+          <button onClick={() => { onGoLogs?.(); setMobileMenuOpen(false) }}
+            className="font-headline font-black text-black uppercase px-6 py-4 border-b-2 border-black text-left">
+            LOGS
+          </button>
+          <button onClick={() => { onGoSettings?.(); setMobileMenuOpen(false) }}
+            className="font-headline font-black text-black uppercase px-6 py-4 text-left">
+            SETTINGS
+          </button>
+        </div>
+      )}
 
       {/* Main content */}
       <main className="relative z-10 pt-28 pb-32 px-4 max-w-7xl mx-auto min-h-screen flex flex-col items-center gap-12">
@@ -96,15 +124,15 @@ export default function CharacterGrid({ onStart }) {
           <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>handshake</span>
           <span className="font-headline font-bold uppercase text-[10px]">DEAL</span>
         </a>
-        <a className="flex flex-col items-center text-white p-2">
+        <a onClick={onGoStats} className="flex flex-col items-center text-white p-2 cursor-pointer">
           <span className="material-symbols-outlined">leaderboard</span>
           <span className="font-headline font-bold uppercase text-[10px]">STATS</span>
         </a>
-        <a className="flex flex-col items-center text-white p-2">
+        <a onClick={onGoCrew} className="flex flex-col items-center text-white p-2 cursor-pointer">
           <span className="material-symbols-outlined">group</span>
           <span className="font-headline font-bold uppercase text-[10px]">CREW</span>
         </a>
-        <a className="flex flex-col items-center text-white p-2">
+        <a onClick={onGoLogs} className="flex flex-col items-center text-white p-2 cursor-pointer">
           <span className="material-symbols-outlined">history</span>
           <span className="font-headline font-bold uppercase text-[10px]">LOGS</span>
         </a>

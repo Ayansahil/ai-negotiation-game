@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+@theme {
+  --font-headline: "Epilogue", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-bangers: "Bangers", system-ui;
+
+  --color-background: #0f0a0a;
+  --color-surface: #1f1818;
+  --color-on-surface: #ffffff;
+  --color-primary: #f59e0b;
+  --color-secondary: #ff716a;
+  --color-accent: #76f0e7;
+
+  --shadow-comic: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+  --shadow-comic-lg: 8px 8px 0px 0px rgba(0, 0, 0, 1);
+}
+
+@layer base {
+  body {
+    @apply bg-background text-on-surface font-body;
+  }
+}
+
+.halftone-bg {
+  background-image: radial-gradient(circle, #f59e0a 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.05;
+}
+
+@keyframes celebrate {
+  0% { transform: scaleX(-1) translateY(0); }
+  50% { transform: scaleX(-1) translateY(-10px) rotate(-5deg); }
+  100% { transform: scaleX(-1) translateY(0); }
+}
+
+.animate-celebrate {
+  animation: celebrate 0.5s infinite;
+}

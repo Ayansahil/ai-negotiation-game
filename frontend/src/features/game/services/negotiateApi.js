@@ -1,49 +1,36 @@
-const MIN_PRICE = 6800
+const BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api'
+const getToken = () => localStorage.getItem('token')
 
-export async function sendNegotiationOffer({ userMessage, currentPrice, round, personality }) {
-  // Backend ready ho toh yeh uncomment karo:
-  // const res = await fetch('http://localhost:5000/api/negotiate/offer', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ userMessage, currentPrice, round, personality })
-  // })
-  // return res.json()
-
-  // Abhi ke liye in-memory logic:
-  return localNegotiateLogic({ userMessage, currentPrice, personality })
+export const startGame = async ({ sellerName, personality }) => {
+  const res = await fetch(`${BASE}/game/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${getToken()}`
+    },
+    body: JSON.stringify({ sellerName, personality })
+  })
+  return res.json()
 }
 
-function localNegotiateLogic({ userMessage, currentPrice, personality }) {
-  const lower = userMessage.toLowerCase()
-  const offerMatch = userMessage.match(/[\d,]+/)
-  const offeredPrice = offerMatch ? parseInt(offerMatch[0].replace(/,/g, '')) : null
+export const sendNegotiationOffer = async ({ gameId, userMessage, currentPrice, round, personality }) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 4000)
 
-  if (offeredPrice && offeredPrice <= MIN_PRICE) {
-    return { newPrice: offeredPrice, mood: 'positive', isDeal: true, sellerMessage: `Deal! ₹${offeredPrice.toLocaleString()} — you earned it. 🤝` }
+  try {
+    const res = await fetch(`${BASE}/game/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gameId, message: userMessage, currentPrice, round, personality }),
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+    return res.json()
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout')
+    }
+    throw error
   }
-
-  const hasFlattery = /love|amazing|best|quality|worth|respect|fair|trust/.test(lower)
-  const hasReason = /student|budget|broke|salary|cheaper|elsewhere|competitor/.test(lower)
-  const hasAggression = /ridiculous|scam|overpriced|never|worst/.test(lower)
-
-  let drop = 0, mood = 'neutral'
-
-  if (personality === 'emotional') {
-    if (hasFlattery) { drop = 400; mood = 'positive' }
-    else if (hasAggression) { drop = 0; mood = 'angry' }
-    else { drop = 100; mood = 'neutral' }
-  } else if (personality === 'logical') {
-    if (hasReason) { drop = 350; mood = 'neutral' }
-    else { drop = 50 }
-  } else {
-    drop = hasReason ? 150 : hasFlattery ? 100 : 50
-    if (hasAggression) { drop = 0; mood = 'annoyed' }
-  }
-
-  const newPrice = Math.max(MIN_PRICE + 1, currentPrice - drop)
-  const sellerMessage = drop > 0
-    ? `Hmm... I can go to ₹${newPrice.toLocaleString()}. That's my offer.`
-    : `I'm not moving on this price. ₹${currentPrice.toLocaleString()} is fair.`
-
-  return { newPrice, mood, isDeal: false, sellerMessage }
 }

@@ -21,24 +21,24 @@ export default function ResultBanner({ won, finalPrice, buyer, seller }) {
       </div>
 
       {/* Banner */}
-      <div className={`p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]
-        ${won ? 'bg-[#f59e0a]' : 'bg-[#a80619]'}`}>
+      <div className={`p-8 border-4 border-black shadow-comic-lg
+        ${won ? 'bg-primary' : 'bg-secondary'}`}>
         <h1 className="font-headline text-6xl font-black uppercase italic text-black drop-shadow-[4px_4px_0px_rgba(0,0,0,0.3)]">
           {won ? 'DEAL SECURED!' : 'NEGOTIATION FAILED'}
         </h1>
         {won && (
-          <div className="mt-4 flex gap-6 justify-center">
-            <div className="bg-black text-[#ffad3a] px-6 py-3 border-4 border-black">
-              <p className="font-bangers text-sm tracking-widest">FINAL PRICE</p>
-              <p className="font-bangers text-4xl">₹{finalPrice.toLocaleString()}</p>
+          <div className="mt-4 flex flex-wrap gap-6 justify-center">
+            <div className="bg-black text-primary px-6 py-3 border-4 border-black">
+              <p className="font-bangers text-sm tracking-widest leading-none">FINAL PRICE</p>
+              <p className="font-bangers text-4xl leading-tight">₹{finalPrice.toLocaleString()}</p>
             </div>
             <div className="bg-white text-black px-6 py-3 border-4 border-black">
-              <p className="font-bangers text-sm tracking-widest">YOU SAVED</p>
-              <p className="font-bangers text-4xl text-green-600">₹{savings.toLocaleString()}</p>
+              <p className="font-bangers text-sm tracking-widest leading-none">YOU SAVED</p>
+              <p className="font-bangers text-4xl text-green-600 leading-tight">₹{savings.toLocaleString()}</p>
             </div>
-            <div className="bg-[#4ecdc4] text-black px-6 py-3 border-4 border-black">
-              <p className="font-bangers text-sm tracking-widest">DISCOUNT</p>
-              <p className="font-bangers text-4xl">{pct}% OFF</p>
+            <div className="bg-accent text-black px-6 py-3 border-4 border-black">
+              <p className="font-bangers text-sm tracking-widest leading-none">DISCOUNT</p>
+              <p className="font-bangers text-4xl leading-tight">{pct}% OFF</p>
             </div>
           </div>
         )}
