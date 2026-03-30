@@ -1,6 +1,7 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+dotenv.config()
 import connectDB from './config/database.js'
 import gameRoutes from './routes/gameRoutes.js'
 import authRoutes from './routes/authRoutes.js'
@@ -19,7 +20,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-     callback(null, true) 
+      callback(new Error('Not allowed by CORS'))
     }
   },
   credentials: true
