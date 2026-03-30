@@ -6,8 +6,25 @@ import gameRoutes from './routes/gameRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 
 const app = express()
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'https://ai-negotiation-game-iota.vercel.app'
+    ]
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'], credentials: true }))
+    // allow requests with no origin (like Postman)
+    if (!origin) return callback(null, true)
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+     callback(null, true) 
+    }
+  },
+  credentials: true
+}))
+
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
