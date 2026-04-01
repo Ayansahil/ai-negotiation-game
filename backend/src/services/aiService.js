@@ -1,11 +1,13 @@
 import dotenv from 'dotenv'
 dotenv.config()
 
-import Groq from 'groq-sdk'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY)
+const model = genAI.getGenerativeModel({
+  model: process.env.GEMINI_MODEL_1 || 'gemini-2.5-flash-lite',
 })
+
 
 // ─── Phase logic ────────────────────────────────────────────────
 // early  → rounds 1–3  : absolute resistance, never accept
@@ -21,11 +23,17 @@ const getPhase = (round, maxRounds) => {
 }
 
 const extractOfferedPrice = (text) => {
+  const lower = text.toLowerCase()
+
+  if (/percent|%|off/.test(lower)) return null
+
   const matches = text.match(/[₹]?\s*(\d[\d,]*)/g)
   if (!matches) return null
+
   const nums = matches
     .map(m => parseInt(m.replace(/[₹,\s]/g, '')))
-    .filter(n => n >= 50 && n <= 500000)
+    .filter(n => n >= 100 && n <= 500000)
+
   return nums.length ? Math.max(...nums) : null
 }
 
@@ -66,32 +74,40 @@ export const getAIResponse = async ({
       setTimeout(() => reject(new Error('AI Timeout')), 4000)
     )
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...messageHistory.slice(-8).map(msg => ({
-        role: msg.role === 'buyer' ? 'user' : 'assistant',
-        content: msg.content,
-      })),
-      { role: 'user', content: userMessage },
-    ]
+    const messages = messageHistory.slice(-8).map(msg => ({
+      role: msg.role === 'buyer' ? 'user' : 'model',
+      parts: [{ text: msg.content }],
+    }))
 
-    const response = await Promise.race([
-      groq.chat.completions.create({
-        model: process.env.GROQ_MODEL || 'mixtral-8x7b-32768',
-        messages,
-        max_tokens: 220,
-        temperature: 0.4,
+    const result = await Promise.race([
+      model.generateContent({
+        contents: [
+          ...messages,
+          { role: 'user', parts: [{ text: userMessage }] },
+        ],
+        systemInstruction: systemPrompt,
+        generationConfig: {
+          maxOutputTokens: 250,
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+        },
       }),
       timeoutPromise,
     ])
 
-    const raw = response.choices[0].message.content
-    console.log('Groq raw:', raw)
+    const response = await result.response
+    const raw = response.text()
+    console.log('Gemini raw:', raw)
+
+
 
     let parsed
     try {
       const cleaned = raw.replace(/```json|```/g, '').trim()
-      parsed = JSON.parse(cleaned)
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error("No JSON found")
+
+      parsed = JSON.parse(jsonMatch[0])
     } catch {
       console.log('JSON parse failed → fallback')
       return fallbackLogic({ userMessage, currentPrice, minPrice: safeMin, personality, offeredPrice, phase })
@@ -159,7 +175,7 @@ export const getAIResponse = async ({
       sellerMessage: parsed.message,
     }
   } catch (err) {
-    console.error('Groq Error:', err.message)
+    console.error('Gemini Error:', err.message)
     return fallbackLogic({ userMessage, currentPrice, minPrice: safeMin, personality, offeredPrice, phase })
   }
 }
@@ -283,19 +299,75 @@ Examples tone:
 ✅ ALWAYS DO:
 - Challenge buyer
 - Ask proof
-- Detect bluff
-- Stay in control
+- Detect bluff BUT respond naturally, not repeatedly
+- 🧠 ANTI-REPETITION RULE (VERY IMPORTANT):
+
+- NEVER repeat same sentence twice
+- NEVER give same reasoning again and again
+- If same situation → respond differently
+
+BAD:
+❌ "Itna kam possible nahi hai" (repeat)
+❌ "Yeh pehle bola tha" (repeat)
+
+GOOD:
+✅ Change tone each time
+✅ Add variation
+✅ Push conversation forward
 
 -------------------------------------
 
-📤 STRICT JSON OUTPUT:
+🧠 SMART NEGOTIATION BEHAVIOR:
+
+- Sometimes ask question:
+  → "Aap honestly kitna dena chahte ho?"
+
+- Sometimes challenge:
+  → "Aap bhi batao itna kam kaise justify kar rahe ho?"
+
+- Sometimes push:
+  → "Agar lena hai toh thoda serious offer do"
+
+- Sometimes soften:
+  → "Chalo aapke liye thoda adjust kar sakta hun"
+
+-------------------------------------
+
+🧠 RESPONSE DIVERSITY RULE:
+
+Every reply must feel NEW.
+
+Use:
+- different sentence structure
+- different tone
+- different approach
+
+DO NOT behave like scripted bot
+
+
+If buyer repeats same offer → instead of repeating, escalate or redirect conversation
+
+-------------------------------------
+
+🚨 STRICT OUTPUT RULE (VERY IMPORTANT):
+
+You MUST return ONLY valid JSON.
+
+If you return anything else → response is invalid.
+
+DO NOT:
+- write normal text
+- add explanation outside JSON
+- break JSON format
+
+ALWAYS follow this EXACT structure:
 
 {
-  "reasoning": "short: manipulation? bluff? logic?",
-  "message": "realistic hinglish reply",
+  "reasoning": "short analysis",
+  "message": "1-2 line hinglish reply",
   "mood": "neutral|annoyed|firm|positive",
-  "price": ${safeMin}-${currentPrice},
-  "deal": ${phase === 'late' || phase === 'final' ? 'true/false' : 'false'}
+  "price": ${currentPrice},
+  "deal": false
 }
 
 NO EXTRA TEXT. ONLY JSON.`;
@@ -305,8 +377,8 @@ NO EXTRA TEXT. ONLY JSON.`;
 function hardRefuse({ offeredPrice, currentPrice, safeMin, phase }) {
   const responses = [
     `₹${offeredPrice?.toLocaleString('en-IN')}?! Bhai serious ho ya timepass? Itne mein toh maal ki packaging bhi nahi aati.`,
-    `Yaar mazaak mat karo. Mera cost price bhi isse zyada hai. ₹${currentPrice.toLocaleString('en-IN')} — yeh final nahi hai but ₹${offeredPrice?.toLocaleString('en-IN')} toh bilkul possible nahi.`,
-    `Ek kaam karo — ghar se khaana khaake aao, phir sahi price batao. ₹${offeredPrice?.toLocaleString('en-IN')} nahi hoga bhai, kabhi nahi.`,
+    `Yaar mazaak mat karo. Mera khareed bhi isse zyada hai. ₹${currentPrice.toLocaleString('en-IN')} — yeh final nahi hai lekin ₹${offeredPrice?.toLocaleString('en-IN')} toh bilkul possible nahi.`,
+    `Ek kaam karo — poora market ghoom kar aao, phir rate dekhkar batao. ₹${offeredPrice?.toLocaleString('en-IN')} kam me mil jai to free me le jaana.`,
   ]
   return {
     newPrice: currentPrice,
