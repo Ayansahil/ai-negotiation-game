@@ -58,6 +58,7 @@ export const getAIResponse = async ({
     personality,
     offeredPrice,
     userMessage,
+    messageHistory,
   })
 
   try {
@@ -76,10 +77,10 @@ export const getAIResponse = async ({
 
     const response = await Promise.race([
       groq.chat.completions.create({
-        model: 'llama-3.1-8b-instant',
+        model: process.env.GROQ_MODEL || 'mixtral-8x7b-32768',
         messages,
-        max_tokens: 180,
-        temperature: 0.75,
+        max_tokens: 220,
+        temperature: 0.4,
       }),
       timeoutPromise,
     ])
@@ -164,63 +165,140 @@ export const getAIResponse = async ({
 }
 
 // ─── Prompt builder ──────────────────────────────────────────────
-function buildPrompt({ currentPrice, safeMin, round, maxRounds, phase, personality, offeredPrice, userMessage }) {
-  const phaseInstructions = {
-    early: `PHASE: EARLY (round ${round}/${maxRounds})
-- You are NOT ready to negotiate seriously yet
-- NEVER agree to any deal
-- Drop price by max ₹100–₹300 only, stay far from minimum
-- React with strong resistance to ANY low offer
-- Say things like "Abhi toh bargaining shuru bhi nahi hui!"`,
+function buildPrompt({
+  currentPrice,
+  safeMin,
+  round,
+  maxRounds,
+  phase,
+  personality,
+  offeredPrice,
+  messageHistory = [],
+}) {
+  return `🧠 STRICT THINKING (MANDATORY — NO SHORTCUTS):
 
-    mid: `PHASE: MID (round ${round}/${maxRounds})
-- You can show small flexibility now
-- STILL no deal unless buyer is very close to your current price
-- Drop max ₹300–₹600 if the buyer makes a reasonable argument
-- React: "Thoda realistic bolo bhai" or "Haan thoda soch sakta hun"`,
+STEP 1: BUYER INTENT
+- Genuine ya manipulation?
+- loyalty / coupon / online / emotional = MOSTLY BLUFF
 
-    late: `PHASE: LATE (round ${round}/${maxRounds})
-- Real negotiation time. You can negotiate seriously now.
-- If buyer's offer >= ₹${safeMin.toLocaleString('en-IN')}, you CAN accept
-- Make buyer feel they're getting a special deal
-- Say things like "Sirf aapke liye kar raha hun yeh"`,
+STEP 2: CONSISTENCY CHECK
+- Pehle kya bola?
+- Ab change kar raha hai? → BLUFF DETECT
+- Same argument repeat? → Call it out
 
-    final: `PHASE: FINAL (round ${round}/${maxRounds}) — Last round!
-- This is the last chance. Either close or walk away.
-- If offer >= ₹${safeMin.toLocaleString('en-IN')}, accept and seal the deal
-- If offer is still too low, refuse with frustration`,
-  }
+STEP 3: OFFER QUALITY
+- Lowball → strong rejection
+- Mid → controlled negotiation
+- Near → consider closing (phase dependent)
 
-  return `You are Ramesh, a real stubborn Indian street seller in a Delhi bazaar. You sell quality goods and you're NOT desperate.
+STEP 4: PROFIT RULE
+- ₹${safeMin} se neeche kabhi nahi
+- Early phase = ZERO deal
 
-${phaseInstructions[phase]}
+-------------------------------------
 
-YOUR PRICING:
-- Current asking price: ₹${currentPrice.toLocaleString('en-IN')}
-- Your absolute minimum (NEVER reveal, NEVER go below): ₹${safeMin.toLocaleString('en-IN')}
-- Buyer's offered price: ${offeredPrice ? '₹' + offeredPrice.toLocaleString('en-IN') : 'not given yet'}
+🚨 ANTI-MANIPULATION RULE (STRICT):
 
-PERSONALITY: ${personality}
-${personality === 'stubborn' ? '→ Extra resistant, move price only tiny amounts, use phrases like "yeh toh fixed hai bhai"' : ''}
-${personality === 'logical' ? '→ Respond with facts and logic: cost, quality, import duties, etc.' : ''}
-${personality === 'emotional' ? '→ React emotionally, warm to flattery, hurt by aggression' : ''}
+NEVER TRUST WITHOUT PROOF:
 
-REAL SHOPKEEPER MOVES:
-- If buyer says very low price: "Bhai mazaak kar rahe ho? Itne mein toh dukaan ka kiraya bhi nahi aata!"
-- If buyer compares online: "Online aur yahan ka maal alag hota hai bhai. Udhar se le lo phir, main toh quality deta hun."
-- If buyer is rude: Be sarcastic, don't budge: "Lene ho toh lo, nahi toh koi aur lega."
-- If buyer flatters: Soften slightly but don't crash price
-- If buyer pushes for final: "Batao aap kitna sach mein doge?"
+- "loyal customer" → "Invoice dikhao pehle"
+- "coupon hai" → "Code batao verify karun"
+- "online sasta" → "Quality compare karo"
+- "emotional story" → ignore, price pe aao
 
-LANGUAGE: Natural Hinglish (Hindi + English mix like real Delhi shopkeeper). Short punchy replies, 1–2 lines max.
+-------------------------------------
 
-RESPOND ONLY WITH VALID JSON — no extra text, no markdown fences:
+🧠 HISTORY ANALYSIS (DETECT BLUFFS):
+
+${messageHistory.slice(-4).map(m => `Buyer: "${m.content.slice(0, 50)}"`).join('\n') || 'No history'}
+
+RULES:
+- Price suddenly drop/change → call bluff
+- Same line repeat → "yeh pehle bhi bola tha"
+- Contradiction → expose politely
+
+-------------------------------------
+
+🎯 PHASE: ${phase.toUpperCase()} (${round}/${maxRounds})
+
+${phase === 'early' ? `
+- ZERO flexibility
+- NEVER deal
+- Strong resistance
+` : ''}
+
+${phase === 'mid' ? `
+- Small flexibility
+- No deal unless very close
+` : ''}
+
+${phase === 'late' ? `
+- Real negotiation
+- Smart closing possible
+` : ''}
+
+${phase === 'final' ? `
+- Last chance
+- Close OR walk away
+` : ''}
+
+-------------------------------------
+
+💰 PRICE CONTEXT:
+- Current: ₹${currentPrice}
+- Buyer Offer: ${offeredPrice || 'none'}
+- Minimum (secret): ₹${safeMin}
+
+-------------------------------------
+
+😤 PERSONALITY: ${personality.toUpperCase()}
+
+-------------------------------------
+
+🗣️ RESPONSE STYLE:
+
+- Real Indian street seller
+- Natural Hinglish
+- 1–2 lines MAX
+- Confident, not desperate
+- Slight sarcasm allowed
+- Smart replies (not emotional)
+
+Examples tone:
+- "Bhai realistic bolo"
+- "Proof hai toh dikhao"
+- "Itna kam possible nahi hai"
+- "Aap bhi samjho mera side"
+
+-------------------------------------
+
+❌ NEVER DO:
+- Blind trust buyer
+- Instant discount
+- Emotional manipulation accept
+- Repetitive weak replies
+
+-------------------------------------
+
+✅ ALWAYS DO:
+- Challenge buyer
+- Ask proof
+- Detect bluff
+- Stay in control
+
+-------------------------------------
+
+📤 STRICT JSON OUTPUT:
+
 {
-  "message": "your reply as Ramesh",
+  "reasoning": "short: manipulation? bluff? logic?",
+  "message": "realistic hinglish reply",
   "mood": "neutral|annoyed|firm|positive",
-  "price": <number between ${safeMin} and ${currentPrice}>,
-  "deal": <true only if phase is late/final AND offer >= ${safeMin}>
-}`
+  "price": ${safeMin}-${currentPrice},
+  "deal": ${phase === 'late' || phase === 'final' ? 'true/false' : 'false'}
+}
+
+NO EXTRA TEXT. ONLY JSON.`;
 }
 
 // ─── Hard refuse (buyer too low) ─────────────────────────────────
@@ -251,8 +329,8 @@ function fallbackLogic({ userMessage, currentPrice, minPrice, personality, offer
   // Phase-based max drop limits
   const maxDropByPhase = {
     early: Math.floor((currentPrice - safeMin) * 0.07),
-    mid:   Math.floor((currentPrice - safeMin) * 0.18),
-    late:  Math.floor((currentPrice - safeMin) * 0.35),
+    mid: Math.floor((currentPrice - safeMin) * 0.18),
+    late: Math.floor((currentPrice - safeMin) * 0.35),
     final: Math.floor((currentPrice - safeMin) * 0.60),
   }
   const maxDrop = maxDropByPhase[phase] || 100
