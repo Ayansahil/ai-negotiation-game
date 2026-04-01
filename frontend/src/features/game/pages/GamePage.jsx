@@ -3,10 +3,19 @@ import CharacterDisplay from '../components/CharacterDisplay'
 import InputHUD from '../components/InputHUD'
 import { useGame } from '../hooks/useGame'
 import StakeDisplay from '../components/StakeDisplay'
+import { useAudioPlayer } from '../../../hooks/useAudioPlayer'
 import '../styles/game.css'
+
 
 export default function GamePage({ buyer, seller, onEnd }) {
   const { gameState, sendOffer } = useGame({ seller, onEnd })
+  const { playSFX } = useAudioPlayer()
+
+  const handleSend = (offer) => {
+    playSFX('click')
+    sendOffer(offer)
+  }
+
 
   return (
     <div className="relative min-h-screen bg-[#0f0a0a] text-on-surface font-body overflow-hidden">
@@ -46,7 +55,8 @@ export default function GamePage({ buyer, seller, onEnd }) {
         <StakeDisplay productLabel={gameState.productLabel} productImage={gameState.productImage} />
       </main>
 
-      <InputHUD onSend={sendOffer} disabled={gameState.done} />
+      <InputHUD onSend={handleSend} disabled={gameState.done} />
+
     </div>
   )
 }

@@ -1,11 +1,21 @@
 import { useEffect } from 'react'
 import ResultBanner from '../components/ResultBanner'
 import Leaderboard from '../components/Leaderboard'
-import { playSuccessJingle } from '../services/sound'
+import { useAudioPlayer } from '../../../hooks/useAudioPlayer'
 import '../styles/outcome.css'
 
+
 export default function OutcomePage({ won, finalPrice, savings, rounds, personality, buyer, seller, onReplay }) {
-  useEffect(() => { if (won) playSuccessJingle() }, [won])
+  const { playSFX } = useAudioPlayer()
+
+  useEffect(() => {
+    if (won) {
+      playSFX('win')
+    } else {
+      playSFX('lose')
+    }
+  }, [won])
+
 
   return (
     <div className="relative min-h-screen bg-[#0f0a0a] text-white font-body overflow-hidden flex flex-col items-center justify-center gap-8 p-8">

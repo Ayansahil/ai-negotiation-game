@@ -1,4 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import AudioControl from './components/AudioControl'
+import { useAudioPlayer } from './hooks/useAudioPlayer'
+
 import LoaderPage from './features/loader/pages/LoaderPage'
 import LoginPage from './features/auth/pages/LoginPage'
 import RegisterPage from './features/auth/pages/RegisterPage'
@@ -17,6 +20,10 @@ export default function App() {
     won: false, finalPrice: 9999,
     savings: 0, rounds: 5, personality: 'unknown'
   })
+
+  const { isPlaying, togglePlay, playSFX } = useAudioPlayer()
+
+
 
   useEffect(() => {
     if (screen === 'loader') {
@@ -115,6 +122,10 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
+
+      {/* Persistent Audio Control */}
+      <AudioControl />
     </>
+
   )
 }

@@ -1,11 +1,25 @@
 import { useState } from 'react'
 import CharacterCard from './CharacterCard'
 import { buyers, sellers } from '../services/characters'
+import { useAudioPlayer } from '../../../hooks/useAudioPlayer'
+
 
 export default function CharacterGrid({ onStart, onGoStats, onGoCrew, onGoLogs, onGoSettings }) {
   const [selectedBuyer, setSelectedBuyer] = useState(null)
   const [selectedSeller, setSelectedSeller] = useState(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { playSFX } = useAudioPlayer()
+
+  const handleSelectBuyer = (b) => {
+    playSFX('click')
+    setSelectedBuyer(b)
+  }
+
+  const handleSelectSeller = (s) => {
+    playSFX('click')
+    setSelectedSeller(s)
+  }
+
 
   const canStart = selectedBuyer && selectedSeller
 
@@ -70,9 +84,10 @@ export default function CharacterGrid({ onStart, onGoStats, onGoCrew, onGoLogs, 
                   key={b.id}
                   character={b}
                   selected={selectedBuyer?.id === b.id}
-                  onSelect={setSelectedBuyer}
+                  onSelect={handleSelectBuyer}
                   mirror={true}
                 />
+
               ))}
             </div>
           </section>
@@ -90,8 +105,9 @@ export default function CharacterGrid({ onStart, onGoStats, onGoCrew, onGoLogs, 
                   key={s.id}
                   character={s}
                   selected={selectedSeller?.id === s.id}
-                  onSelect={setSelectedSeller}
+                  onSelect={handleSelectSeller}
                 />
+
               ))}
             </div>
           </section>
@@ -101,7 +117,11 @@ export default function CharacterGrid({ onStart, onGoStats, onGoCrew, onGoLogs, 
         <div className="mt-8">
           <button
             disabled={!canStart}
-            onClick={() => onStart({ buyer: selectedBuyer, seller: selectedSeller })}
+            onClick={() => {
+              playSFX('click')
+              onStart({ buyer: selectedBuyer, seller: selectedSeller })
+            }}
+
             className={`group flex items-center gap-4 px-12 py-6 rounded-lg border-4 border-black 
               shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all
               ${canStart
